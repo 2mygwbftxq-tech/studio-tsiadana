@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Studio avec Terrasse Tsiadana</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{background:#f5f5f5;min-height:100vh;display:flex;justify-content:center}
+#app{width:100%;max-width:420px;background:#fff;min-height:100vh}
+button:active{transform:scale(0.97)}
+input:focus,select:focus{outline:none;border-color:#1D9E75!important}
+.btn{display:block;width:100%;padding:13px 16px;border-radius:10px;border:1px solid #ddd;background:#fff;color:#1a1a1a;font-size:15px;font-weight:500;cursor:pointer;text-align:center}
+.btn-green{background:#1D9E75;border:none;color:#fff}
+.btn-wa{background:#25D366;border:none;color:#fff}
+.btn-ms{background:#0084FF;border:none;color:#fff}
+.btn-red{background:#FCEBEB;border:1px solid #FCEBEB;color:#791F1F}
+.btn-amber{background:#FAEEDA;border:none;color:#854F0B}
+.btn-sm{font-size:13px;padding:9px 12px}
+input,select{width:100%;padding:11px 13px;border-radius:10px;border:1px solid #ddd;background:#fff;color:#1a1a1a;font-size:15px;display:block}
+.card{background:#fff;border:1px solid #e8e8e8;border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.hdr{padding:13px 16px 11px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:8px}
+.sec{padding:14px 16px}
+.back{background:none;border:none;cursor:pointer;color:#888;font-size:20px;padding:0;line-height:1;flex-shrink:0}
+.badge{display:inline-block;padding:3px 9px;border-radius:5px;font-size:12px;font-weight:500}
+.badge-amber{background:#FAEEDA;color:#854F0B}
+.badge-green{background:#EAF3DE;color:#27500A}
+.badge-red{background:#FCEBEB;color:#791F1F}
+.meta{font-size:11px;color:#999;margin:0 0 3px}
+.val{font-size:15px;font-weight:500;color:#1a1a1a;margin:0}
+.note{font-size:12px;color:#999;line-height:1.6}
+.spin{display:flex;justify-content:center;align-items:center;height:100px;color:#999;font-size:14px}
+.tab{display:flex;border-bottom:1px solid #f0f0f0;margin-bottom:14px}
+.tab button{flex:1;padding:10px;background:none;border:none;font-size:13px;cursor:pointer;color:#999;border-bottom:2px solid transparent}
+.tab button.active{color:#1D9E75;border-bottom:2px solid #1D9E75;font-weight:600}
+.chip{padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid #ddd;background:#fff;color:#888}
+.chip.active{background:#1D9E75;color:#fff;border-color:#1D9E75;font-weight:500}
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;justify-content:center;z-index:100}
+.modal{background:#fff;border-radius:16px 16px 0 0;padding:20px 16px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:200}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const SUPABASE_URL="https://sfpyuecingpravqdbxya.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmcHl1ZWNpbmdwcmF2cWRieHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDcwNjMsImV4cCI6MjA5MjI4MzA2M30.ZvG2qXc9cputM9--6KQf08T6kiyjjwV07PJUfOwLIYQ";
+const CFG={name:"Studio avec Terrasse Tsiadana",wa:"261327313079",messenger:"https://m.me/StudioTsiadana",mm:"032 73 130 79",pn:"90 000 Ar",pm:"700 000 Ar",pwd:"869324"};
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const {useState,useEffect,useCallback,Fragment}=React;
+const h=React.createElement;
+const MONTHS=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const DAYS=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+function toKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function fmt(s){if(!s)return"—";const[y,m,d]=s.split("-");return d+"/"+m+"/"+y}
+function daysRange(a,b){const r=[];const c=new Date(a);const e=new Date(b);while(c<=e){r.push(toKey(new Date(c)));c.setDate(c.getDate()+1)}return r}
+function daysBetween(a,b){return Math.max(0,Math.round((new Date(b)-new Date(a))/86400000))}
+function firstDow(y,m){const d=new Date(y,m,1).getDay();return d===0?6:d-1}
+function daysIn(y,m){return new Date(y,m+1,0).getDate()}
+
+function App(){
+  const [scr,setScr]=useState("home");
+  const [res,setRes]=useState([]);
+  const [blocked,setBlocked]=useState([]);
+  const [sel,setSel]=useState({s:null,e:null});
+  const [form,setForm]=useState({name:"",phone:""});
+  const [month,setMonth]=useState(new Date());
+  const [auth,setAuth]=useState(false);
+  const [pwd,setPwd]=useState("");
+  const [pwdErr,setPwdErr]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [adminTab,setAdminTab]=useState("reservations");
+  const [editRes,setEditRes]=useState(null);
+  const [editForm,setEditForm]=useState({name:"",phone:"",start_date:"",end_date:""});
+  const [adminMode,setAdminMode]=useState("single"); // single | range
+  const [adminSel,setAdminSel]=useState({s:null,e:null});
+  const [dayDetail,setDayDetail]=useState(null);
+  const [resFilter,setResFilter]=useState("all");
+  const [toast,setToast]=useState("");
+
+  function showToast(msg){setToast(msg);setTimeout(()=>setToast(""),2500)}
+
+  const loadData=useCallback(async()=>{
+    setLoading(true);
+    try{
+      const [rRes,bRes]=await Promise.all([
+        sb.from("reservations").select("*").order("created_at",{ascending:false}),
+        sb.from("blocked_dates").select("date_key")
+      ]);
+      setRes(rRes.data||[]);
+      setBlocked((bRes.data||[]).map(x=>x.date_key));
+    }catch(e){console.error(e)}
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{loadData();},[loadData]);
+
+  const confirmedDates=new Set([
+    ...blocked,
+    ...res.filter(r=>r.status==="confirmed").flatMap(r=>daysRange(r.start_date,r.end_date))
+  ]);
+  const pendingDates=new Set(res.filter(r=>r.status==="pending").flatMap(r=>daysRange(r.start_date,r.end_date)));
+  const today=toKey(new Date());
+  const Y=month.getFullYear(),M=month.getMonth();
+
+  // CLIENT: pick dates
+  function clickDay(dk){
+    if(dk<today||confirmedDates.has(dk))return;
+    if(!sel.s||(sel.s&&sel.e)){setSel({s:dk,e:null});return}
+    if(dk<sel.s){setSel({s:dk,e:null});return}
+    if(daysRange(sel.s,dk).some(d=>confirmedDates.has(d))){setSel({s:dk,e:null});return}
+    setSel({...sel,e:dk});
+  }
+
+  // ADMIN: toggle single date block
+  async function togBlock(dk){
+    try{
+      if(blocked.includes(dk)){
+        await sb.from("blocked_dates").delete().eq("date_key",dk);
+        showToast("Date débloquée");
+      }else{
+        await sb.from("blocked_dates").insert([{date_key:dk}]);
+        showToast("Date bloquée");
+      }
+      await loadData();
+    }catch(e){alert("Erreur: "+e.message)}
+  }
+
+  // ADMIN: block range
+  async function blockRange(s,e){
+    try{
+      const allConfirmed=res.filter(r=>r.status==="confirmed").flatMap(r=>daysRange(r.start_date,r.end_date));
+      const range=daysRange(s,e).filter(d=>!blocked.includes(d)&&!allConfirmed.includes(d));
+      if(range.length===0){showToast("Aucune date disponible à bloquer");return}
+      await sb.from("blocked_dates").insert(range.map(d=>({date_key:d})));
+      await loadData();
+      setAdminSel({s:null,e:null});
+      showToast(range.length+" date(s) bloquée(s)");
+    }catch(e){alert("Erreur: "+e.message)}
+  }
+
+  // ADMIN: unblock range
+  async function unblockRange(s,e){
+    try{
+      const range=daysRange(s,e).filter(d=>blocked.includes(d));
+      if(range.length===0){showToast("Aucune date bloquée dans cette plage");return}
+      await sb.from("blocked_dates").delete().in("date_key",range);
+      await loadData();
+      setAdminSel({s:null,e:null});
+      showToast(range.length+" date(s) débloquée(s)");
+    }catch(e){alert("Erreur: "+e.message)}
+  }
+
+  // ADMIN: click day handler
+  function adminClickDay(dk){
+    const hasConfirmed=res.find(r=>r.status==="confirmed"&&daysRange(r.start_date,r.end_date).includes(dk));
+    const hasPending=res.find(r=>r.status==="pending"&&daysRange(r.start_date,r.end_date).includes(dk));
+    if(hasConfirmed||hasPending){
+      setDayDetail({date:dk,reservation:hasConfirmed||hasPending});
+      return;
+    }
+    if(adminMode==="single"){togBlock(dk);return}
+    // range mode
+    if(!adminSel.s||(adminSel.s&&adminSel.e)){setAdminSel({s:dk,e:null});return}
+    if(dk<adminSel.s){setAdminSel({s:dk,e:null});return}
+    setAdminSel({...adminSel,e:dk});
+  }
+
+  async function submitBooking(){
+    setSaving(true);
+    try{
+      await sb.from("reservations").insert([{id:Date.now().toString(),name:form.name,phone:form.phone,start_date:sel.s,end_date:sel.e||sel.s,status:"pending"}]);
+      await loadData();
+      setScr("contact");
+    }catch(e){alert("Erreur. Réessayez.")}
+    setSaving(false);
+  }
+
+  async function updStatus(id,status){
+    try{
+      await sb.from("reservations").update({status}).eq("id",id);
+      await loadData();
+      showToast(status==="confirmed"?"Réservation confirmée":status==="rejected"?"Réservation refusée":"Statut mis à jour");
+    }catch(e){alert("Erreur: "+e.message)}
+  }
+
+  async function deleteRes(id){
+    if(!window.confirm("Supprimer définitivement cette réservation ?"))return;
+    try{
+      await sb.from("reservations").delete().eq("id",id);
+      await loadData();
+      showToast("Réservation supprimée");
+    }catch(e){alert("Erreur: "+e.message)}
+  }
+
+  async function saveEdit(){
+    if(!editForm.name||!editForm.phone||!editForm.start_date||!editForm.end_date){
+      alert("Tous les champs sont obligatoires");return;
+    }
+    if(editForm.end_date<editForm.start_date){
+      alert("La date de départ doit être après la date d'arrivée");return;
+    }
+    // Check conflicts with other confirmed reservations
+    const newRange=daysRange(editForm.start_date,editForm.end_date);
+    const otherConfirmed=res.filter(r=>r.id!==editRes.id&&r.status==="confirmed").flatMap(r=>daysRange(r.start_date,r.end_date));
+    const conflicts=newRange.filter(d=>otherConfirmed.includes(d));
+    if(conflicts.length>0){
+      if(!window.confirm("Attention : cette plage chevauche une autre réservation confirmée ("+fmt(conflicts[0])+"). Continuer quand même ?"))return;
+    }
+    setSaving(true);
+    try{
+      await sb.from("reservations").update({
+        name:editForm.name,phone:editForm.phone,
+        start_date:editForm.start_date,end_date:editForm.end_date
+      }).eq("id",editRes.id);
+      await loadData();
+      setEditRes(null);
+      showToast("Réservation modifiée");
+    }catch(e){alert("Erreur: "+e.message)}
+    setSaving(false);
+  }
+
+  const nights=sel.s&&sel.e?daysBetween(sel.s,sel.e):0;
+  const price=nights>=25?"700 000 Ar":(nights*90000).toLocaleString()+" Ar";
+
+  function buildMsg(){
+    const n=daysBetween(sel.s,sel.e||sel.s);
+    return"Bonjour, je souhaite réserver le "+CFG.name+" du "+fmt(sel.s)+" au "+fmt(sel.e||sel.s)+" ("+n+" nuit"+(n>1?"s":"")+"). Mon nom : "+form.name+". Mon numéro : "+form.phone+".";
+  }
+  function doWa(){window.open("https://wa.me/"+CFG.wa+"?text="+encodeURIComponent(buildMsg()),"_blank")}
+  function doMs(){window.open(CFG.messenger,"_blank")}
+  function doCopy(){try{navigator.clipboard.writeText(buildMsg());setCopied(true);setTimeout(()=>setCopied(false),2000)}catch(e){}}
+  function isInRange(dk){return sel.s&&sel.e&&dk>sel.s&&dk<sel.e}
+  function isAdminInRange(dk){return adminSel.s&&adminSel.e&&dk>adminSel.s&&dk<adminSel.e}
+
+  function CalGrid({admin}){
+    const fd=firstDow(Y,M),nd=daysIn(Y,M);
+    const cells=[];
+    for(let i=0;i<fd;i++)cells.push(h("div",{key:"e"+i}));
+    for(let i=1;i<=nd;i++){
+      const dk=Y+"-"+String(M+1).padStart(2,"0")+"-"+String(i).padStart(2,"0");
+      const past=dk<today;
+      const isBl=blocked.includes(dk);
+      const isCf=confirmedDates.has(dk)&&!isBl;
+      const isPd=pendingDates.has(dk);
+      const isS=admin?(adminSel.s===dk):(sel.s===dk);
+      const isE=admin?(adminSel.e===dk):(sel.e===dk);
+      const inR=admin?isAdminInRange(dk):isInRange(dk);
+      let bg="#f5f5f5",tc="#1a1a1a",op=1;
+      if(past){op=0.3;bg="transparent"}
+      else if(admin){
+        if(isCf){bg="#F09595";tc="#791F1F"}
+        else if(isBl){bg="#FAEEDA";tc="#854F0B"}
+        else if(isPd){bg="#D6E8FB";tc="#0C447C"}
+        if(isS||isE){bg="#1D9E75";tc="#fff"}
+        else if(inR){bg="#9FE1CB";tc="#085041"}
+      }else{
+        if(isBl||isCf){bg="#F09595";tc="#791F1F"}
+        else if(isS||isE){bg="#1D9E75";tc="#fff"}
+        else if(inR){bg="#9FE1CB";tc="#085041"}
+      }
+      cells.push(h("div",{
+        key:dk,
+        onClick:()=>admin?adminClickDay(dk):clickDay(dk),
+        style:{textAlign:"center",padding:admin?"6px 1px":"7px 1px",borderRadius:6,fontSize:admin?11:13,fontWeight:(isS||isE)?600:400,background:bg,color:tc,opacity:op,cursor:past?"default":"pointer",position:"relative"}
+      },i));
+    }
+    return h("div",null,
+      h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}},
+        h("button",{className:"back",style:{border:"1px solid #ddd",borderRadius:8,width:32,height:32,fontSize:16},onClick:()=>setMonth(new Date(Y,M-1,1))},"‹"),
+        h("span",{style:{fontSize:15,fontWeight:600}},MONTHS[M]+" "+Y),
+        h("button",{className:"back",style:{border:"1px solid #ddd",borderRadius:8,width:32,height:32,fontSize:16},onClick:()=>setMonth(new Date(Y,M+1,1))},"›")
+      ),
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:3}},
+        DAYS.map(d=>h("div",{key:d,style:{textAlign:"center",fontSize:10,color:"#bbb"}},d))
+      ),
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}},cells)
+    );
+  }
+
+  const toastEl=toast&&h("div",{className:"toast"},toast);
+
+  // ═══ HOME ═══
+  if(scr==="home")return h(Fragment,null,
+    h("div",{style:{background:"#1D9E75",padding:"20px 16px 16px"}},
+      h("p",{style:{color:"rgba(255,255,255,0.7)",fontSize:11,letterSpacing:1,marginBottom:5}},"MADAGASCAR · ANTANANARIVO"),
+      h("h1",{style:{color:"#fff",fontSize:22,fontWeight:600,marginBottom:5,lineHeight:1.3}},CFG.name),
+      h("p",{style:{color:"rgba(255,255,255,0.85)",fontSize:13}},"Studio moderne avec terrasse panoramique")
+    ),
+    h("div",{className:"sec"},
+      h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}},
+        [{l:"Prix / nuit",v:CFG.pn},{l:"Prix / mois",v:CFG.pm}].map(({l,v})=>h("div",{key:l,style:{background:"#f8f8f8",borderRadius:10,padding:"10px 12px"}},
+          h("p",{className:"meta"},l),
+          h("p",{className:"val"},v)
+        ))
+      ),
+      h("div",{style:{background:"#f8f8f8",borderRadius:10,padding:"12px",marginBottom:12}},
+        h("p",{style:{fontSize:14,color:"#444",lineHeight:1.65}},"Studio entièrement équipé avec une belle terrasse vue sur Tsiadana. Idéal pour court ou long séjour au cœur d'Antananarivo.")
+      ),
+      h("button",{className:"btn btn-green",style:{marginBottom:10},onClick:()=>setScr("calendar")},"Voir les disponibilités →"),
+      h("button",{className:"btn btn-sm",onClick:()=>setScr("admin")},"Accès gestionnaire")
+    ),
+    toastEl
+  );
+
+  // ═══ CALENDAR (client) ═══
+  if(scr==="calendar")return h(Fragment,null,
+    h("div",{className:"hdr"},
+      h("button",{className:"back",onClick:()=>setScr("home")},"←"),
+      h("div",null,
+        h("p",{style:{fontSize:15,fontWeight:600,color:"#1a1a1a"}},"Choisir les dates"),
+        h("p",{className:"note"},"1er clic = arrivée · 2ème clic = départ")
+      )
+    ),
+    h("div",{className:"sec",style:{paddingBottom:8}},
+      h("div",{style:{display:"flex",gap:12,marginBottom:12}},
+        [{bg:"#1D9E75",l:"Sélectionné"},{bg:"#F09595",l:"Non dispo"},{bg:"#f5f5f5",l:"Libre",b:true}].map(({bg,l,b})=>h("div",{key:l,style:{display:"flex",alignItems:"center",gap:5}},
+          h("div",{style:{width:10,height:10,borderRadius:2,background:bg,border:b?"1px solid #ddd":"none"}}),
+          h("span",{style:{fontSize:11,color:"#999"}},l)
+        ))
+      ),
+      loading?h("div",{className:"spin"},"Chargement..."):h(CalGrid,{admin:false})
+    ),
+    sel.s&&h("div",{style:{margin:"0 16px 10px",padding:"10px 14px",background:"#f8f8f8",borderRadius:10,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+      h("div",null,h("p",{className:"meta"},"Arrivée"),h("p",{className:"val"},fmt(sel.s))),
+      h("span",{style:{color:"#ccc",fontSize:18}},"→"),
+      h("div",{style:{textAlign:"right"}},h("p",{className:"meta"},"Départ"),h("p",{className:"val"},sel.e?fmt(sel.e):"—")),
+      sel.e&&h("div",{style:{textAlign:"right"}},
+        h("p",{className:"meta"},nights+" nuit"+(nights>1?"s":"")),
+        h("p",{style:{fontSize:14,fontWeight:600,color:"#1D9E75"}},price)
+      )
+    ),
+    h("div",{style:{padding:"0 16px 16px"}},
+      h("button",{className:"btn btn-green",style:{opacity:(sel.s&&sel.e)?1:0.4},disabled:!sel.s||!sel.e,onClick:()=>setScr("form")},"Continuer →")
+    )
+  );
+
+  // ═══ FORM ═══
+  if(scr==="form")return h("div",null,
+    h("div",{className:"hdr"},
+      h("button",{className:"back",onClick:()=>setScr("calendar")},"←"),
+      h("div",null,
+        h("p",{style:{fontSize:15,fontWeight:600,color:"#1a1a1a"}},"Vos informations"),
+        h("p",{className:"note"},fmt(sel.s)+" → "+fmt(sel.e)+" · "+nights+" nuit"+(nights>1?"s":""))
+      )
+    ),
+    h("div",{className:"sec"},
+      h("div",{style:{background:"#EAF3DE",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",justifyContent:"space-between"}},
+        h("span",{style:{fontSize:13,color:"#3B6D11"}},"Total estimé"),
+        h("span",{style:{fontSize:15,fontWeight:600,color:"#27500A"}},price)
+      ),
+      h("label",{style:{fontSize:13,color:"#888",display:"block",marginBottom:6}},"Votre nom complet"),
+      h("input",{style:{marginBottom:12},placeholder:"Ex : Rakoto Jean",value:form.name,onChange:e=>setForm({...form,name:e.target.value})}),
+      h("label",{style:{fontSize:13,color:"#888",display:"block",marginBottom:6}},"Votre numéro de téléphone"),
+      h("input",{style:{marginBottom:12},placeholder:"Ex : 034 12 345 67",value:form.phone,onChange:e=>setForm({...form,phone:e.target.value})}),
+      h("div",{style:{background:"#f8f8f8",borderRadius:10,padding:"10px 14px",marginBottom:14}},
+        h("p",{style:{fontSize:12,color:"#888",marginBottom:3}},"Paiement par Mobile Money après confirmation"),
+        h("p",{style:{fontSize:15,fontWeight:600,color:"#1a1a1a"}},"MVola : "+CFG.mm)
+      ),
+      h("button",{className:"btn btn-green",style:{opacity:(form.name&&form.phone&&!saving)?1:0.4},disabled:!form.name||!form.phone||saving,onClick:submitBooking},saving?"Envoi en cours...":"Envoyer la demande →")
+    )
+  );
+
+  // ═══ CONTACT ═══
+  if(scr==="contact")return h("div",null,
+    h("div",{style:{background:"#EAF3DE",padding:"16px 16px 14px"}},
+      h("p",{style:{fontSize:11,color:"#3B6D11",letterSpacing:1,marginBottom:3}},"DEMANDE ENVOYÉE ✓"),
+      h("p",{style:{fontSize:16,fontWeight:600,color:"#085041",marginBottom:2}},"Contactez-nous pour confirmer"),
+      h("p",{style:{fontSize:12,color:"#3B6D11"}},"Choisissez WhatsApp ou Messenger")
+    ),
+    h("div",{className:"sec"},
+      h("div",{style:{background:"#f8f8f8",borderRadius:10,padding:"10px 14px",marginBottom:14}},
+        h("p",{style:{fontSize:12,color:"#888",marginBottom:5,fontWeight:500}},"Votre réservation"),
+        h("p",{style:{fontSize:13,color:"#333",lineHeight:1.6}},buildMsg())
+      ),
+      h("button",{className:"btn btn-wa",style:{marginBottom:10},onClick:doWa},"WhatsApp →"),
+      h("button",{className:"btn btn-ms",style:{marginBottom:14},onClick:doMs},"Messenger →"),
+      h("div",{style:{border:"1px solid #eee",borderRadius:10,padding:"10px 14px",marginBottom:12}},
+        h("p",{className:"note",style:{marginBottom:6}},"Pour Messenger, copiez ce message :"),
+        h("p",{style:{fontSize:12,color:"#333",lineHeight:1.55,fontStyle:"italic",marginBottom:8}},buildMsg()),
+        h("button",{className:"btn btn-sm",style:{background:copied?"#EAF3DE":"",color:copied?"#27500A":""},onClick:doCopy},copied?"Copié !":"Copier le message")
+      ),
+      h("div",{style:{background:"#f8f8f8",borderRadius:10,padding:"10px 14px",marginBottom:14}},
+        h("p",{className:"meta"},"Paiement Mobile Money"),
+        h("p",{style:{fontSize:18,fontWeight:600,color:"#1a1a1a"}},CFG.mm)
+      ),
+      h("button",{className:"btn btn-sm",onClick:()=>{setScr("home");setSel({s:null,e:null});setForm({name:"",phone:""})}},"← Retour à l'accueil")
+    )
+  );
+
+  // ═══ ADMIN LOGIN ═══
+  if(scr==="admin"&&!auth)return h("div",null,
+    h("div",{className:"hdr"},
+      h("button",{className:"back",onClick:()=>setScr("home")},"←"),
+      h("p",{style:{fontSize:15,fontWeight:600,color:"#1a1a1a"}},"Accès gestionnaire")
+    ),
+    h("div",{className:"sec"},
+      h("label",{style:{fontSize:13,color:"#888",display:"block",marginBottom:6}},"Mot de passe"),
+      h("input",{style:{marginBottom:12},type:"password",placeholder:"••••••",value:pwd,onChange:e=>setPwd(e.target.value),onKeyDown:e=>{if(e.key==="Enter"){if(pwd===CFG.pwd){setAuth(true);setPwdErr(false)}else setPwdErr(true)}}}),
+      pwdErr&&h("p",{style:{color:"#A32D2D",fontSize:13,marginBottom:12}},"Mot de passe incorrect"),
+      h("button",{className:"btn btn-green",onClick:()=>{if(pwd===CFG.pwd){setAuth(true);setPwdErr(false)}else setPwdErr(true)}},"Connexion")
+    )
+  );
+
+  // ═══ ADMIN DASHBOARD ═══
+  if(scr==="admin"&&auth){
+    const pending=res.filter(r=>r.status==="pending");
+    const confirmed=res.filter(r=>r.status==="confirmed");
+    const statusMap={pending:["amber","En attente"],confirmed:["green","Confirmé"],rejected:["red","Refusé"]};
+    const filteredRes=resFilter==="all"?res:res.filter(r=>r.status===resFilter);
+
+    return h(Fragment,null,
+      h("div",{className:"hdr",style:{justifyContent:"space-between"}},
+        h("p",{style:{fontSize:15,fontWeight:600,color:"#1a1a1a"}},"Tableau de bord"),
+        h("button",{style:{background:"none",border:"none",cursor:"pointer",fontSize:12,color:"#999"},onClick:()=>{setAuth(false);setPwd("");setScr("home")}},"Déconnexion")
+      ),
+      h("div",{className:"sec"},
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}},
+          [{l:"En attente",v:pending.length,bg:"#FAEEDA",tc:"#854F0B"},{l:"Confirmées",v:confirmed.length,bg:"#EAF3DE",tc:"#3B6D11"}].map(({l,v,bg,tc})=>h("div",{key:l,style:{background:bg,borderRadius:10,padding:"10px 12px"}},
+            h("p",{style:{fontSize:12,color:tc,marginBottom:3,opacity:0.8}},l),
+            h("p",{style:{fontSize:26,fontWeight:700,color:tc}},v)
+          ))
+        ),
+        h("div",{className:"tab"},
+          h("button",{className:adminTab==="reservations"?"active":"",onClick:()=>setAdminTab("reservations")},"Réservations"),
+          h("button",{className:adminTab==="calendar"?"active":"",onClick:()=>setAdminTab("calendar")},"Calendrier")
+        ),
+
+        // ═══ TAB: RESERVATIONS ═══
+        adminTab==="reservations"&&h("div",null,
+          h("div",{style:{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}},
+            [{v:"all",l:"Toutes ("+res.length+")"},{v:"pending",l:"En attente ("+pending.length+")"},{v:"confirmed",l:"Confirmées ("+confirmed.length+")"},{v:"rejected",l:"Refusées ("+res.filter(r=>r.status==="rejected").length+")"}].map(({v,l})=>
+              h("button",{key:v,className:"chip"+(resFilter===v?" active":""),onClick:()=>setResFilter(v)},l)
+            )
+          ),
+          loading&&h("div",{className:"spin"},"Chargement..."),
+          !loading&&filteredRes.length===0&&h("p",{style:{fontSize:14,color:"#ccc",textAlign:"center",padding:"20px 0"}},"Aucune réservation"),
+          !loading&&filteredRes.map(r=>h("div",{key:r.id,className:"card"},
+            h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}},
+              h("div",null,
+                h("p",{style:{fontSize:14,fontWeight:600,color:"#1a1a1a",marginBottom:1}},r.name),
+                h("p",{style:{fontSize:12,color:"#888"}},r.phone)
+              ),
+              h("span",{className:"badge badge-"+statusMap[r.status][0]},statusMap[r.status][1])
+            ),
+            h("p",{style:{fontSize:12,color:"#888",marginBottom:10}},fmt(r.start_date)+" → "+fmt(r.end_date)+" · "+daysBetween(r.start_date,r.end_date)+" nuit"+(daysBetween(r.start_date,r.end_date)>1?"s":"")),
+            h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}},
+              r.status==="pending"&&h("button",{className:"btn btn-sm",style:{background:"#EAF3DE",border:"1px solid #EAF3DE",color:"#27500A"},onClick:()=>updStatus(r.id,"confirmed")},"✓ Confirmer"),
+              r.status==="pending"&&h("button",{className:"btn btn-sm",style:{background:"#FCEBEB",border:"1px solid #FCEBEB",color:"#791F1F"},onClick:()=>updStatus(r.id,"rejected")},"✕ Refuser"),
+              r.status!=="pending"&&h("button",{className:"btn btn-sm",style:{background:"#FAEEDA",border:"1px solid #FAEEDA",color:"#854F0B"},onClick:()=>updStatus(r.id,"pending")},"↻ Remettre en attente"),
+              r.status!=="pending"&&h("button",{className:"btn btn-sm",style:{background:"#f0f0f0",border:"none",color:"#555"},onClick:()=>{setEditRes(r);setEditForm({name:r.name,phone:r.phone,start_date:r.start_date,end_date:r.end_date})}},"✎ Modifier"),
+              r.status==="pending"&&h("button",{className:"btn btn-sm",style:{background:"#f0f0f0",border:"none",color:"#555",gridColumn:"1 / -1"},onClick:()=>{setEditRes(r);setEditForm({name:r.name,phone:r.phone,start_date:r.start_date,end_date:r.end_date})}},"✎ Modifier"),
+              h("button",{className:"btn btn-sm btn-red",style:{gridColumn:"1 / -1"},onClick:()=>deleteRes(r.id)},"🗑 Supprimer")
+            )
+          ))
+        ),
+
+        // ═══ TAB: CALENDAR ═══
+        adminTab==="calendar"&&h("div",null,
+          h("p",{className:"note",style:{marginBottom:10}},"Cliquez sur une date libre pour la bloquer. Cliquez sur une date réservée pour voir les détails."),
+          h("div",{style:{display:"flex",gap:8,marginBottom:12}},
+            h("button",{className:"btn btn-sm",style:{flex:1,background:adminMode==="single"?"#1D9E75":"#f0f0f0",color:adminMode==="single"?"#fff":"#555",border:"none"},onClick:()=>{setAdminMode("single");setAdminSel({s:null,e:null})}},"Date par date"),
+            h("button",{className:"btn btn-sm",style:{flex:1,background:adminMode==="range"?"#1D9E75":"#f0f0f0",color:adminMode==="range"?"#fff":"#555",border:"none"},onClick:()=>setAdminMode("range")},"Plage de dates")
+          ),
+          adminMode==="range"&&h("p",{className:"note",style:{marginBottom:10,textAlign:"center",background:"#f8f8f8",padding:"8px",borderRadius:8}},
+            !adminSel.s?"Cliquez sur la date de début":!adminSel.e?"Cliquez sur la date de fin":fmt(adminSel.s)+" → "+fmt(adminSel.e)
+          ),
+          loading?h("div",{className:"spin"},"Chargement..."):h(CalGrid,{admin:true}),
+          adminMode==="range"&&adminSel.s&&adminSel.e&&h("div",{style:{marginTop:10,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+            h("button",{className:"btn btn-sm btn-amber",onClick:()=>blockRange(adminSel.s,adminSel.e)},"Bloquer"),
+            h("button",{className:"btn btn-sm",style:{background:"#EAF3DE",border:"none",color:"#27500A"},onClick:()=>unblockRange(adminSel.s,adminSel.e)},"Débloquer")
+          ),
+          adminMode==="range"&&adminSel.s&&h("button",{className:"btn btn-sm",style:{marginTop:8,background:"#f0f0f0",border:"none"},onClick:()=>setAdminSel({s:null,e:null})},"Annuler la sélection"),
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:12}},
+            [{bg:"#F09595",l:"Réservé (confirmé)"},{bg:"#D6E8FB",l:"En attente"},{bg:"#FAEEDA",l:"Bloqué"},{bg:"#f5f5f5",l:"Libre",b:true}].map(({bg,l,b})=>h("div",{key:l,style:{display:"flex",alignItems:"center",gap:5}},
+              h("div",{style:{width:10,height:10,borderRadius:2,background:bg,border:b?"1px solid #ddd":"none"}}),
+              h("span",{style:{fontSize:11,color:"#999"}},l)
+            ))
+          )
+        )
+      ),
+
+      // ═══ EDIT MODAL ═══
+      editRes&&h("div",{className:"modal-bg",onClick:e=>{if(e.target.className==="modal-bg")setEditRes(null)}},
+        h("div",{className:"modal"},
+          h("p",{style:{fontSize:16,fontWeight:600,marginBottom:14}},"Modifier la réservation"),
+          h("label",{style:{fontSize:13,color:"#888",display:"block",marginBottom:5}},"Nom"),
+          h("input",{style:{marginBottom:10},value:editForm.name,onChange:e=>setEditForm({...editForm,name:e.target.value})}),
+          h("label",{style:{fontSize:13,color:"#888",display:"block",marginBottom:5}},"Téléphone"),
+          h("input",{style:{marginBottom:10},value:editForm.phone,onChange:e=>setEditForm({...editForm,phone:e.target.value})}),
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}},
+            h("div",null,
+              h("label",{style:{fontSize:13,color:"#888",display:"block",marginBottom:5}},"Arrivée"),
+              h("input",{type:"date",value:editForm.start_date,onChange:e=>setEditForm({...editForm,start_date:e.target.value})})
+            ),
+            h("div",null,
+              h("label",{style:{fontSize:13,color:"#888",display:"block",marginBottom:5}},"Départ"),
+              h("input",{type:"date",value:editForm.end_date,onChange:e=>setEditForm({...editForm,end_date:e.target.value})})
+            )
+          ),
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+            h("button",{className:"btn btn-sm",style:{background:"#f0f0f0",border:"none"},onClick:()=>setEditRes(null)},"Annuler"),
+            h("button",{className:"btn btn-sm btn-green",style:{opacity:saving?0.5:1},disabled:saving,onClick:saveEdit},saving?"Enregistrement...":"Enregistrer")
+          )
+        )
+      ),
+
+      // ═══ DAY DETAIL MODAL ═══
+      dayDetail&&h("div",{className:"modal-bg",onClick:e=>{if(e.target.className==="modal-bg")setDayDetail(null)}},
+        h("div",{className:"modal"},
+          h("p",{style:{fontSize:16,fontWeight:600,marginBottom:4}},fmt(dayDetail.date)),
+          h("p",{style:{fontSize:13,color:"#888",marginBottom:14}},"Réservation liée"),
+          h("div",{className:"card",style:{marginBottom:14}},
+            h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}},
+              h("div",null,
+                h("p",{style:{fontSize:14,fontWeight:600,color:"#1a1a1a",marginBottom:1}},dayDetail.reservation.name),
+                h("p",{style:{fontSize:12,color:"#888"}},dayDetail.reservation.phone)
+              ),
+              h("span",{className:"badge badge-"+statusMap[dayDetail.reservation.status][0]},statusMap[dayDetail.reservation.status][1])
+            ),
+            h("p",{style:{fontSize:12,color:"#888"}},fmt(dayDetail.reservation.start_date)+" → "+fmt(dayDetail.reservation.end_date))
+          ),
+          h("button",{className:"btn btn-sm",style:{background:"#1D9E75",border:"none",color:"#fff",marginBottom:8},onClick:()=>{setEditRes(dayDetail.reservation);setEditForm({name:dayDetail.reservation.name,phone:dayDetail.reservation.phone,start_date:dayDetail.reservation.start_date,end_date:dayDetail.reservation.end_date});setDayDetail(null)}},"Modifier cette réservation"),
+          h("button",{className:"btn btn-sm",style:{background:"#f0f0f0",border:"none"},onClick:()=>setDayDetail(null)},"Fermer")
+        )
+      ),
+
+      toastEl
+    );
+  }
+  return null;
+}
+ReactDOM.render(h(App),document.getElementById("app"));
+</script>
+</body>
+</html>
